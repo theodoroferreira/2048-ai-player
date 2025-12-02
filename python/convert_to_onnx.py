@@ -1,7 +1,3 @@
-"""
-Convert trained Keras model to ONNX format for browser deployment.
-"""
-
 import os
 import sys
 
@@ -12,16 +8,9 @@ import tf2onnx
 import onnx
 
 def convert_model(
-    keras_model_path: str = "python/models/model_final.h5",
-    output_path: str = "model/model.onnx"
+    keras_model_path: str = "python/models/model_1000.h5",
+    output_path: str = "model/model_1000.onnx"
 ):
-    """
-    Convert Keras model to ONNX format.
-
-    Args:
-        keras_model_path: Path to the Keras model (.h5 file)
-        output_path: Output path for ONNX model
-    """
     if not os.path.exists(keras_model_path):
         print(f"Error: Model file not found at {keras_model_path}")
         print("Please train the model first using train_dqn.py")
@@ -34,14 +23,12 @@ def convert_model(
     print(f"Model summary:")
     model.summary()
 
-    # Create output directory if it doesn't exist
     output_dir = os.path.dirname(output_path)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
     print(f"\nConverting to ONNX format...")
 
-    # First save as SavedModel format (required intermediate step)
     import shutil
     import subprocess
 
@@ -49,7 +36,6 @@ def convert_model(
     print(f"Saving to temporary SavedModel format...")
     model.export(temp_saved_model_path)
 
-    # Convert SavedModel to ONNX using CLI tool
     print(f"Converting SavedModel to ONNX...")
     result = subprocess.run([
         "python", "-m", "tf2onnx.convert",
@@ -58,7 +44,6 @@ def convert_model(
         "--opset", "13"
     ], capture_output=True, text=True)
 
-    # Clean up temp directory
     shutil.rmtree(temp_saved_model_path, ignore_errors=True)
 
     if result.returncode != 0:
@@ -84,12 +69,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert Keras model to ONNX")
     parser.add_argument(
         "--input",
-        default="python/models/model_final.h5",
+        default="python/models/model_1000.h5",
         help="Path to input Keras model (.h5 file)"
     )
     parser.add_argument(
         "--output",
-        default="model/model.onnx",
+        default="model/model_1000.onnx",
         help="Output path for ONNX model"
     )
 

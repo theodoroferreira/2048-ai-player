@@ -13,7 +13,7 @@ import threading
 
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_GPU_ALLOCATOR'] = 'cuda_malloc_async'
-os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'false'  # Pre-allocate all GPU memory
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'  # Pre-allocate all GPU memory
 
 import tensorflow as tf
 from tensorflow import keras
@@ -288,8 +288,8 @@ def train(
 
 if __name__ == "__main__":
     train(
-        episodes=100,
-        max_steps=150,
-        parallel_envs=4,  # Adjust based on CPU cores (Colab has ~2 cores)
-        target_update_freq=5
+        episodes=500,
+        max_steps=200,
+        parallel_envs=256,
+        target_update_freq=250
     )

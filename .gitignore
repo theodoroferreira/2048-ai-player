@@ -38,7 +38,6 @@ wheels/
 *.ckpt
 *.keras
 python/models/
-model/
 
 # Training logs
 *.log

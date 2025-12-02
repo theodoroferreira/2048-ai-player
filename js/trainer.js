@@ -6,19 +6,14 @@
 (function () {
   'use strict';
 
-  // Configuration
-  const AI_DELAY_MS = 100; // Delay between moves to see animations
-  const MODEL_PATH = 'model/model.onnx';
+  const AI_DELAY_MS = 100;
+  const MODEL_PATH = 'model/model3.onnx';
 
-  // State
   let aiPlaying = false;
   let session = null;
   let moveCount = 0;
   let gamesPlayed = 0;
 
-  /**
-   * Load the ONNX model
-   */
   async function loadModel() {
     if (session) {
       return session;
@@ -41,25 +36,19 @@
     }
   }
 
-  /**
-   * Get the current board state as a normalized vector
-   * Returns a 16-element array with log2 encoding
-   */
   function getBoardState() {
     if (!window.game || !game.grid) {
       console.error('Game not ready');
       return null;
     }
 
-    const size = game.size; // Should be 4
+    const size = game.size;
     const state = [];
 
-    // Read board row by row (matching Python implementation)
     for (let x = 0; x < size; x++) {
       for (let y = 0; y < size; y++) {
         const tile = game.grid.cells[x][y];
         if (tile && tile.value > 0) {
-          // Log2 encoding: 2->1, 4->2, 8->3, etc.
           state.push(Math.log2(tile.value));
         } else {
           state.push(0);
@@ -70,9 +59,6 @@
     return state;
   }
 
-  /**
-   * Check if the game is over
-   */
   function isGameOver() {
     if (!window.game) {
       return true;
@@ -80,18 +66,13 @@
     return game.isGameTerminated();
   }
 
-  /**
-   * Check if a move is valid (changes the board)
-   */
   function isMoveValid(action) {
     if (!window.game || !game.grid) {
       return false;
     }
 
-    // Create a temporary copy to test the move
     const oldCells = game.grid.cells.map(row => row.slice());
 
-    // Simulate the move
     const vectorMap = {
       0: { x: 0, y: -1 },   // Up
       1: { x: 1, y: 0 },    // Right
@@ -104,7 +85,6 @@
       return false;
     }
 
-    // Check if any tile can move in this direction
     for (let x = 0; x < game.size; x++) {
       for (let y = 0; y < game.size; y++) {
         const tile = game.grid.cells[x][y];
@@ -112,7 +92,6 @@
           const newX = x + vector.x;
           const newY = y + vector.y;
 
-          // Can move to empty cell
           if (newX >= 0 && newX < game.size && newY >= 0 && newY < game.size) {
             const targetCell = game.grid.cells[newX][newY];
             if (!targetCell || targetCell.value === tile.value) {
@@ -126,14 +105,10 @@
     return false;
   }
 
-  /**
-   * Choose the best action using the trained model
-   */
   async function chooseAction(state) {
     const sess = await loadModel();
 
     if (!sess) {
-      // Fallback: random valid action if model isn't loaded
       console.warn('Model not loaded, choosing random action');
       const validActions = [];
       for (let i = 0; i < 4; i++) {
@@ -146,19 +121,15 @@
         : 0;
     }
 
-    // Prepare input tensor [1, 16]
     const inputTensor = new ort.Tensor('float32', new Float32Array(state), [1, 16]);
 
-    // Run inference
     const feeds = {};
     feeds[sess.inputNames[0]] = inputTensor;
     const results = await sess.run(feeds);
 
-    // Get Q-values from output
     const outputTensor = results[sess.outputNames[0]];
-    const qValuesArray = outputTensor.data; // Float32Array with 4 Q-values
+    const qValuesArray = outputTensor.data;
 
-    // Find valid actions and their Q-values
     const actionScores = [];
     for (let i = 0; i < 4; i++) {
       if (isMoveValid(i)) {
@@ -166,13 +137,11 @@
       }
     }
 
-    // If no valid actions (shouldn't happen), return 0
     if (actionScores.length === 0) {
       console.warn('No valid actions available');
       return 0;
     }
 
-    // Choose action with highest Q-value among valid actions
     actionScores.sort((a, b) => b.qValue - a.qValue);
 
     const bestAction = actionScores[0].action;
@@ -183,9 +152,6 @@
     return bestAction;
   }
 
-  /**
-   * Execute one AI step
-   */
   async function stepAI() {
     if (!aiPlaying) {
       return;
@@ -208,7 +174,6 @@
       gamesPlayed++;
       moveCount = 0;
 
-      // Optionally restart automatically
       setTimeout(() => {
         if (aiPlaying) {
           console.log('\nStarting new game...\n');
@@ -220,25 +185,19 @@
       return;
     }
 
-    // Get current state
     const state = getBoardState();
     if (!state) {
       stopAI();
       return;
     }
 
-    // Choose and execute action
     const action = await chooseAction(state);
     game.move(action);
     moveCount++;
 
-    // Schedule next step
     setTimeout(stepAI, AI_DELAY_MS);
   }
 
-  /**
-   * Get the maximum tile value on the board
-   */
   function getMaxTile() {
     if (!window.game || !game.grid) {
       return 0;
@@ -254,9 +213,6 @@
     return max;
   }
 
-  /**
-   * Start the AI player
-   */
   window.startAI = async function () {
     if (!window.game) {
       console.error('Game not loaded yet. Please wait and try again.');
@@ -272,25 +228,19 @@
     console.log('Starting AI Player');
     console.log('═══════════════════════════════════════');
 
-    // Load model first
     const loaded = await loadModel();
     if (!loaded) {
       console.error('Failed to load model. Cannot start AI.');
       return;
     }
 
-    // Start a new game
     game.restart();
     moveCount = 0;
     aiPlaying = true;
 
-    // Start playing
     stepAI();
   };
 
-  /**
-   * Stop the AI player
-   */
   window.stopAI = function () {
     if (!aiPlaying) {
       console.log('AI is not playing');
@@ -303,7 +253,6 @@
     console.log('═══════════════════════════════════════');
   };
 
-  // Add keyboard shortcut to toggle AI
   document.addEventListener('keydown', function (event) {
     if (event.key === 'a' || event.key === 'A') {
       if (aiPlaying) {
