@@ -4,3 +4,56 @@
 __pycache__/
 .ipynb_checkpoints/
 
+# Python
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+*.ipynb
+
+# TensorFlow / ML Models
+*.h5
+*.hdf5
+*.pb
+*.ckpt
+*.keras
+python/models/
+model/
+
+# Training logs
+*.log
+training_stats.json
+
+# System
+.DS_Store
+*~
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+.claude
+CLAUDE.md
+
