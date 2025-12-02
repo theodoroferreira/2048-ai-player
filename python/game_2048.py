@@ -186,3 +186,114 @@ class Game2048:
         new_game.score = self.score
         new_game.game_over = self.game_over
         return new_game
+
+    def _move_static(self, board: np.ndarray, direction: int) -> Tuple[np.ndarray, bool]:
+        """
+        Perform a move on a given board without modifying the environment.
+        Returns (new_board, moved).
+        """
+        temp_board = board.copy()
+
+        if direction == 0:  # Up
+            new_board = self._move_up_static(temp_board)
+        elif direction == 1:  # Right
+            new_board = self._move_right_static(temp_board)
+        elif direction == 2:  # Down
+            new_board = self._move_down_static(temp_board)
+        elif direction == 3:  # Left
+            new_board = self._move_left_static(temp_board)
+        else:
+            new_board = temp_board
+
+        moved = not np.array_equal(board, new_board)
+        return new_board, moved
+
+    def _move_left_static(self, board: np.ndarray) -> np.ndarray:
+        """Move and merge tiles to the left (static version)."""
+        new_board = np.zeros_like(board)
+
+        for i in range(self.size):
+            row = board[i, :]
+            non_zero = row[row != 0]
+
+            merged = []
+            skip = False
+            for j in range(len(non_zero)):
+                if skip:
+                    skip = False
+                    continue
+
+                if j + 1 < len(non_zero) and non_zero[j] == non_zero[j + 1]:
+                    merged_value = non_zero[j] * 2
+                    merged.append(merged_value)
+                    skip = True
+                else:
+                    merged.append(non_zero[j])
+
+            new_board[i, :len(merged)] = merged
+
+        return new_board
+
+    def _move_right_static(self, board: np.ndarray) -> np.ndarray:
+        """Move and merge tiles to the right (static version)."""
+        flipped = np.fliplr(board)
+        moved = self._move_left_static(flipped)
+        return np.fliplr(moved)
+
+    def _move_up_static(self, board: np.ndarray) -> np.ndarray:
+        """Move and merge tiles up (static version)."""
+        transposed = board.T
+        moved = self._move_left_static(transposed)
+        return moved.T
+
+    def _move_down_static(self, board: np.ndarray) -> np.ndarray:
+        """Move and merge tiles down (static version)."""
+        transposed = board.T
+        flipped = np.fliplr(transposed)
+        moved = self._move_left_static(flipped)
+        return np.fliplr(moved).T
+
+
+def evaluate_board(board_4x4: np.ndarray) -> float:
+    """
+    Heurística simples:
+    - mais células vazias é melhor
+    - tiles maiores são melhores
+    """
+    empty_cells = np.count_nonzero(board_4x4 == 0)
+    max_tile = board_4x4.max() if board_4x4.size > 0 else 0
+
+    max_component = 0.0
+    if max_tile > 0:
+        max_component = float(np.log2(max_tile))
+
+    # Peso simples: espaços vazios + 0.1 * log2(max_tile)
+    return empty_cells + 0.1 * max_component
+
+
+def choose_action_heuristic(env: Game2048) -> int:
+    """
+    Dado um ambiente, testa todas as ações possíveis e escolhe
+    aquela que leva ao tabuleiro com melhor avaliação.
+    """
+    board = env.board
+    best_action = None
+    best_score = -float('inf')
+
+    for action in range(4):
+        new_board, moved = env._move_static(board, action)
+        # Se o movimento não muda nada, ignora (ação inválida naquele estado)
+        if not moved:
+            continue
+
+        score = evaluate_board(new_board)
+
+        if score > best_score:
+            best_score = score
+            best_action = action
+
+    # Se nenhuma ação foi válida (jogo travado), devolve 0 por padrão
+    if best_action is None:
+        best_action = 0
+
+    return best_action

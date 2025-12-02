@@ -17,7 +17,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from game_2048 import Game2048
+from game_2048 import Game2048, choose_action_heuristic
 
 # Verify suppression
 print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
@@ -35,7 +35,7 @@ class DQNAgent:
         epsilon_decay: float = 0.995,
         epsilon_min: float = 0.01,
         memory_size: int = 10000,
-        batch_size: int = 64
+        batch_size: int = 256
     ):
         self.state_size = state_size
         self.action_size = action_size
@@ -70,7 +70,8 @@ class DQNAgent:
 
         model.compile(
             optimizer=keras.optimizers.Adam(learning_rate=self.learning_rate),
-            loss='mse'
+            loss='mse',
+            jit_compile=True
         )
 
         return model
@@ -83,12 +84,13 @@ class DQNAgent:
         """Store experience in replay memory."""
         self.memory.append((state, action, reward, next_state, done))
 
-    def act(self, state, valid_actions=None) -> int:
+    def act(self, state, env=None, valid_actions=None) -> int:
         """
-        Choose an action using epsilon-greedy policy.
+        Choose an action using epsilon-greedy policy with heuristic guidance.
 
         Args:
             state: Current game state
+            env: Game environment (optional, for heuristic)
             valid_actions: List of valid action indices (optional)
 
         Returns:
@@ -97,9 +99,12 @@ class DQNAgent:
         if valid_actions is None:
             valid_actions = list(range(self.action_size))
 
-        # Exploration: random action
+        # Exploration: use heuristic if env is provided, otherwise random
         if np.random.random() <= self.epsilon:
-            return random.choice(valid_actions)
+            if env is not None:
+                return choose_action_heuristic(env)
+            else:
+                return random.choice(valid_actions)
 
         # Exploitation: best action according to model
         state = np.reshape(state, [1, self.state_size])
@@ -159,7 +164,7 @@ def train(
     episodes: int = 100,
     max_steps: int = 200,
     target_update_freq: int = 10,
-    save_freq: int = 10,
+    batch_size: int = 256,
     model_dir: str = "python/models"
 ):
     """
@@ -169,7 +174,7 @@ def train(
         episodes: Number of training episodes
         max_steps: Maximum steps per episode
         target_update_freq: Update target network every N episodes
-        save_freq: Save model every N episodes
+        batch_size: Batch size for training
         model_dir: Directory to save models
     """
     # Create model directory if it doesn't exist
@@ -193,8 +198,8 @@ def train(
         total_reward = 0
 
         for step in range(max_steps):
-            # Choose action
-            action = agent.act(state)
+            # Choose action (with heuristic guidance during exploration)
+            action = agent.act(state, env=env)
 
             # Take action
             next_state, reward, done = env.step(action)
@@ -228,11 +233,6 @@ def train(
                   f"Avg Score: {avg_score:.1f} | "
                   f"Avg Max Tile: {avg_max_tile:.0f} | "
                   f"Epsilon: {agent.epsilon:.3f}")
-
-        # Save model periodically
-        if (episode + 1) % save_freq == 0:
-            model_path = os.path.join(model_dir, f"model_ep{episode + 1}.h5")
-            agent.save(model_path)
 
     # Save final model
     final_model_path = os.path.join(model_dir, "model_final.h5")
@@ -270,6 +270,5 @@ if __name__ == "__main__":
     train(
         episodes=100,
         max_steps=200,
-        target_update_freq=10,
-        save_freq=10
+        target_update_freq=10
     )
