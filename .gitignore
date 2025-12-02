@@ -1,0 +1,6 @@
+.sass-cache/
+.idea/
+.vscode/
+__pycache__/
+.ipynb_checkpoints/
+
