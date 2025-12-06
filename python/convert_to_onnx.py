@@ -8,8 +8,8 @@ import tf2onnx
 import onnx
 
 def convert_model(
-    keras_model_path: str = "python/models/model_1000.h5",
-    output_path: str = "model/model_1000.onnx"
+    keras_model_path: str = "python/models/model_final.h5",
+    output_path: str = "model/model_final.onnx"
 ):
     if not os.path.exists(keras_model_path):
         print(f"Error: Model file not found at {keras_model_path}")
@@ -69,12 +69,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert Keras model to ONNX")
     parser.add_argument(
         "--input",
-        default="python/models/model_1000.h5",
+        default="python/models/model_final.h5",
         help="Path to input Keras model (.h5 file)"
     )
     parser.add_argument(
         "--output",
-        default="model/model_1000.onnx",
+        default="model/model_final.onnx",
         help="Output path for ONNX model"
     )
 

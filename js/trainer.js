@@ -1,8 +1,3 @@
-/**
- * AI Player for 2048 using ONNX Runtime Web
- * Loads a trained Deep Q-Network model and plays the game automatically
- */
-
 (function () {
   'use strict';
 
